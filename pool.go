@@ -107,21 +107,24 @@ func (w worker) processJob(m MailProcessingJob) {
 }
 
 func (w worker) sendViaMailGun(m MailProcessingJob) {
-
+	// Get the message body in both formats.
 	plainTextMessage, formattedMessage, err := w.buildMessage(m)
 	if err != nil {
 		service.ErrorChan <- err
 		return
 	}
 
+	// Create a mailgun client.
 	mg := mailgun.NewMailgun(service.Domain, service.APIKey)
 	if service.SendingFromEU {
 		mg.SetAPIBase("https://api.eu.mailgun.net/v3")
 	}
 
+	// Create the message in MailGun format.
 	message := mg.NewMessage(m.MailMessage.FromAddress, m.MailMessage.Subject, plainTextMessage, m.MailMessage.ToAddress)
 	message.SetHtml(formattedMessage)
 
+	// Add additional to recipients.
 	if len(m.MailMessage.AdditionalTo) > 0 {
 		for _, x := range m.MailMessage.AdditionalTo {
 			err := message.AddRecipient(x)
@@ -132,32 +135,38 @@ func (w worker) sendViaMailGun(m MailProcessingJob) {
 		}
 	}
 
+	// Add cc recipients.
 	if len(m.MailMessage.CC) > 0 {
 		for _, x := range m.MailMessage.CC {
 			message.AddCC(x)
 		}
 	}
 
+	// Add attachments.
 	if len(m.MailMessage.Attachments) > 0 {
 		for _, x := range m.MailMessage.Attachments {
 			message.AddAttachment(x)
 		}
 	}
+
+	// Set a 10-second context.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	// Send the message with a 10 second timeout
+	// Send the message with a 10-second timeout.
 	_, _, err = mg.Send(ctx, message)
 	service.ErrorChan <- err
 }
 
 func (w worker) sendViaSMTP(m MailProcessingJob) {
+	// Get the message body in both formats.
 	plainText, formattedMessage, err := w.buildMessage(m)
 	if err != nil {
 		service.ErrorChan <- err
 		return
 	}
 
+	// Create smtp client.
 	server := mail.NewSMTPClient()
 	server.Host = service.SMTPServer
 	server.Port = service.SMTPPort
@@ -181,23 +190,27 @@ func (w worker) sendViaSMTP(m MailProcessingJob) {
 		return
 	}
 
+	// Create the mail message.
 	email := mail.NewMSG()
 	email.SetFrom(m.MailMessage.FromAddress).
 		AddTo(m.MailMessage.ToAddress).
 		SetSubject(m.MailMessage.Subject)
 
+	// Add additional to recipients.
 	if len(m.MailMessage.AdditionalTo) > 0 {
 		for _, x := range m.MailMessage.AdditionalTo {
 			email.AddTo(x)
 		}
 	}
 
+	// Add cc recipients.
 	if len(m.MailMessage.CC) > 0 {
 		for _, x := range m.MailMessage.CC {
 			email.AddCc(x)
 		}
 	}
 
+	// Add attachments.
 	if len(m.MailMessage.Attachments) > 0 {
 		for _, x := range m.MailMessage.Attachments {
 			email.AddAttachment(x)
