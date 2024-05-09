@@ -55,7 +55,8 @@ func (w worker) start() {
 	}()
 }
 
-// MailDispatcher holds info for a dispatcher.
+// MailDispatcher is the main interface to this package. Calling new returns an instance onf this type.
+// This type has one method, Send, which is used to send an email.
 type MailDispatcher struct {
 	workerPool chan chan MailProcessingJob // Our worker pool channel.
 	maxWorkers int                         // The maximum number of workers in our pool.
