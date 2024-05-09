@@ -55,7 +55,7 @@ func (w worker) start() {
 
 // MailDispatcher holds info for a dispatcher.
 type MailDispatcher struct {
-	WorkerPool chan chan MailProcessingJob // Our worker pool channel.
+	workerPool chan chan MailProcessingJob // Our worker pool channel.
 	maxWorkers int                         // The maximum number of workers in our pool.
 	JobQueue   chan MailProcessingJob      // The channel we send work to.
 	ErrorChan  chan error                  // The channel we send errors (or nil) to.
@@ -73,7 +73,7 @@ func (md *MailDispatcher) Send(msg MailData) {
 // Run runs the workers in our worker pool.
 func (md *MailDispatcher) Run() {
 	for i := 0; i < md.maxWorkers; i++ {
-		worker := newWorker(i+1, md.WorkerPool)
+		worker := newWorker(i+1, md.workerPool)
 		worker.start()
 	}
 
@@ -87,7 +87,7 @@ func (md *MailDispatcher) dispatch() {
 		job := <-md.JobQueue
 
 		go func() {
-			workerJobQueue := <-md.WorkerPool // assign a channel from our worker pool to workerJobPool.
+			workerJobQueue := <-md.workerPool // assign a channel from our worker pool to workerJobPool.
 			workerJobQueue <- job             // Send the unit of work to our queue.
 		}()
 	}
