@@ -14,7 +14,7 @@ import (
 // around a Video, which has all the information we need about the input source
 // and what we want the output to look like.
 type MailProcessingJob struct {
-	MailMessage MailMessage
+	MailMessage MailData
 }
 
 // newWorker takes a numeric id and a channel which accepts the chan MailProcessingJob
@@ -48,7 +48,7 @@ func (w worker) start() {
 			job := <-w.jobQueue
 
 			// Process the video with a worker.
-			w.processJob(job.MailMessage)
+			w.processJob(job)
 		}
 	}()
 }
@@ -57,7 +57,14 @@ func (w worker) start() {
 type MailDispatcher struct {
 	WorkerPool chan chan MailProcessingJob // Our worker pool channel.
 	maxWorkers int                         // The maximum number of workers in our pool.
-	jobQueue   chan MailProcessingJob      // The channel we send work to.
+	JobQueue   chan MailProcessingJob      // The channel we send work to.
+}
+
+func (md *MailDispatcher) Send(msg MailData) {
+	job := MailProcessingJob{
+		MailMessage: msg,
+	}
+	md.JobQueue <- job
 }
 
 // Run runs the workers.
@@ -74,7 +81,7 @@ func (md *MailDispatcher) Run() {
 func (md *MailDispatcher) dispatch() {
 	for {
 		// Wait for a job to come in.
-		job := <-md.jobQueue
+		job := <-md.JobQueue
 
 		go func() {
 			workerJobQueue := <-md.WorkerPool // assign a channel from our worker pool to workerJobPool.
@@ -84,13 +91,12 @@ func (md *MailDispatcher) dispatch() {
 }
 
 // processJob processes the main queue job.
-func (w worker) processJob(m MailMessage) {
-	mailMsg := m.MailData
+func (w worker) processJob(m MailProcessingJob) {
 
 	t, err := template.New("msg").Parse(bootstrapTemplate)
 	if err != nil {
 		log.Println(err)
-		ErrorChan <- err
+		service.ErrorChan <- err
 		return
 	}
 
@@ -105,20 +111,20 @@ func (w worker) processJob(m MailMessage) {
 		FloatMap      map[string]float32
 		RowSets       map[string]interface{}
 	}{
-		Content:   mailMsg.Content,
-		FromName:  mailMsg.FromName,
-		From:      mailMsg.FromAddress,
-		ServerUrl: mailMsg.ServerURL,
-		IntMap:    mailMsg.IntMap,
-		StringMap: mailMsg.StringMap,
-		FloatMap:  mailMsg.FloatMap,
-		RowSets:   mailMsg.RowSets,
+		Content:   m.MailMessage.Content,
+		FromName:  m.MailMessage.FromName,
+		From:      m.MailMessage.FromAddress,
+		ServerUrl: m.MailMessage.ServerURL,
+		IntMap:    m.MailMessage.IntMap,
+		StringMap: m.MailMessage.StringMap,
+		FloatMap:  m.MailMessage.FloatMap,
+		RowSets:   m.MailMessage.RowSets,
 	}
 
 	var tpl bytes.Buffer
 	if err := t.Execute(&tpl, data); err != nil {
 		log.Println(err)
-		ErrorChan <- err
+		service.ErrorChan <- err
 		return
 	}
 
@@ -134,16 +140,16 @@ func (w worker) processJob(m MailMessage) {
 	formattedMessage, err = inliner.Inline(result)
 	if err != nil {
 		log.Println(err)
-		ErrorChan <- err
+		service.ErrorChan <- err
 		return
 	}
 
 	server := mail.NewSMTPClient()
-	server.Host = SMTPServer
-	server.Port = SMTPPort
-	server.Username = SMTPUser
-	server.Password = SMTPPassword
-	if SMTPServer == "localhost" {
+	server.Host = service.SMTPServer
+	server.Port = service.SMTPPort
+	server.Username = service.SMTPUser
+	server.Password = service.SMTPPassword
+	if service.SMTPServer == "localhost" {
 		server.Authentication = mail.AuthPlain
 	} else {
 		server.Authentication = mail.AuthLogin
@@ -157,37 +163,37 @@ func (w worker) processJob(m MailMessage) {
 	smtpClient, err := server.Connect()
 	if err != nil {
 		log.Println(err)
-		ErrorChan <- err
+		service.ErrorChan <- err
 		return
 	}
 
 	email := mail.NewMSG()
-	email.SetFrom(mailMsg.FromAddress).
-		AddTo(mailMsg.ToAddress).
-		SetSubject(mailMsg.Subject)
+	email.SetFrom(m.MailMessage.FromAddress).
+		AddTo(m.MailMessage.ToAddress).
+		SetSubject(m.MailMessage.Subject)
 
-	if len(mailMsg.AdditionalTo) > 0 {
-		for _, x := range mailMsg.AdditionalTo {
+	if len(m.MailMessage.AdditionalTo) > 0 {
+		for _, x := range m.MailMessage.AdditionalTo {
 			email.AddTo(x)
 		}
 	}
 
-	if len(mailMsg.CC) > 0 {
-		for _, x := range mailMsg.CC {
+	if len(m.MailMessage.CC) > 0 {
+		for _, x := range m.MailMessage.CC {
 			email.AddCc(x)
 		}
 	}
 
-	if len(mailMsg.Attachments) > 0 {
-		for _, x := range mailMsg.Attachments {
+	if len(m.MailMessage.Attachments) > 0 {
+		for _, x := range m.MailMessage.Attachments {
 			email.AddAttachment(x)
 		}
 	}
 
 	// To add image to template, use this syntax:
 	// <img alt="alt text" src="cid:filename.png">
-	if len(mailMsg.InlineImages) > 0 {
-		for _, x := range mailMsg.InlineImages {
+	if len(m.MailMessage.InlineImages) > 0 {
+		for _, x := range m.MailMessage.InlineImages {
 			email.AddInline(x)
 		}
 	}
@@ -199,5 +205,5 @@ func (w worker) processJob(m MailMessage) {
 	if err != nil {
 		log.Println(err)
 	}
-	ErrorChan <- err
+	service.ErrorChan <- err
 }
