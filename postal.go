@@ -2,16 +2,25 @@ package postal
 
 import "errors"
 
+const (
+	SMTP    = 1
+	MailGun = 2
+)
+
 // Service is the type used to create a MailDispatcher.
 type Service struct {
-	ServerURL    string     // The URL of the server mail is sent from.
-	SMTPServer   string     // The SMTP server.
-	SMTPPort     int        // The SMTP server's port.
-	SMTPUser     string     // The username for the SMTP server.
-	SMTPPassword string     // The password for the SMTP server.
-	ErrorChan    chan error // A channel to send errors (or nil) to.
-	MaxWorkers   int        // Maximum number of workers in the pool.
-	MaxMessages  int        // How big the buffer should be for the JobQueue.
+	Method        int        // How to send the message: postal.SMTP or postal.MailGun.
+	ServerURL     string     // The URL of the server mail is sent from.
+	SMTPServer    string     // The SMTP server.
+	SMTPPort      int        // The SMTP server's port.
+	SMTPUser      string     // The username for the SMTP server.
+	SMTPPassword  string     // The password for the SMTP server.
+	ErrorChan     chan error // A channel to send errors (or nil) to.
+	MaxWorkers    int        // Maximum number of workers in the pool.
+	MaxMessages   int        // How big the buffer should be for the JobQueue.
+	Domain        string     // The domain used to send mail.
+	APIKey        string     // The API key for mailgun.
+	SendingFromEU bool       // If using mailgun and sending from EU, set to true.
 }
 
 var service Service
@@ -22,6 +31,14 @@ func New(s Service) (*MailDispatcher, error) {
 	service = s
 
 	// Sanity check.
+	if service.Method == 0 {
+		service.Method = SMTP
+	}
+
+	if service.Method == MailGun && service.Domain == "" {
+		return nil, errors.New("domain required when using mailgun")
+	}
+
 	if service.MaxMessages == 0 {
 		service.MaxMessages = 100
 	}

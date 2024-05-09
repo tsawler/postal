@@ -2,7 +2,9 @@ package postal
 
 import (
 	"bytes"
+	"context"
 	"github.com/aymerick/douceur/inliner"
+	"github.com/mailgun/mailgun-go/v4"
 	mail "github.com/xhit/go-simple-mail/v2"
 	"html/template"
 	"jaytaylor.com/html2text"
@@ -96,60 +98,61 @@ func (md *MailDispatcher) dispatch() {
 // processJob processes the main queue job by trying to deliver an email message. The resulting error, which will be
 // nil if delivery is successful, is sent to the error chan.
 func (w worker) processJob(m MailProcessingJob) {
-	var templateToParse string
-	if m.MailMessage.Template == "" {
-		templateToParse = bootstrapTemplate
-	} else {
-		templateToParse = m.MailMessage.Template
+	switch service.Method {
+	case SMTP:
+		w.sendViaSMTP(m)
+	case MailGun:
+		w.sendViaMailGun(m)
 	}
+}
 
-	t, err := template.New("msg").Parse(templateToParse)
+func (w worker) sendViaMailGun(m MailProcessingJob) {
+
+	_, formattedMessage, err := w.buildMessage(m)
 	if err != nil {
-		log.Println(err)
 		service.ErrorChan <- err
 		return
 	}
 
-	data := struct {
-		Content       template.HTML
-		From          string
-		FromName      string
-		PreferenceMap map[string]string
-		ServerUrl     string
-		IntMap        map[string]int
-		StringMap     map[string]string
-		FloatMap      map[string]float32
-		RowSets       map[string]interface{}
-	}{
-		Content:   m.MailMessage.Content,
-		FromName:  m.MailMessage.FromName,
-		From:      m.MailMessage.FromAddress,
-		ServerUrl: m.MailMessage.ServerURL,
-		IntMap:    m.MailMessage.IntMap,
-		StringMap: m.MailMessage.StringMap,
-		FloatMap:  m.MailMessage.FloatMap,
-		RowSets:   m.MailMessage.RowSets,
+	mg := mailgun.NewMailgun(service.Domain, service.APIKey)
+	if service.SendingFromEU {
+		mg.SetAPIBase("https://api.eu.mailgun.net/v3")
 	}
 
-	var tpl bytes.Buffer
-	if err := t.Execute(&tpl, data); err != nil {
-		log.Println(err)
-		service.ErrorChan <- err
-		return
+	message := mg.NewMessage(m.MailMessage.FromAddress, m.MailMessage.Subject, formattedMessage, m.MailMessage.ToAddress)
+
+	if len(m.MailMessage.AdditionalTo) > 0 {
+		for _, x := range m.MailMessage.AdditionalTo {
+			err := message.AddRecipient(x)
+			if err != nil {
+				service.ErrorChan <- err
+				return
+			}
+		}
 	}
 
-	result := tpl.String()
+	if len(m.MailMessage.CC) > 0 {
+		for _, x := range m.MailMessage.CC {
+			message.AddCC(x)
+		}
+	}
 
-	plainText, err := html2text.FromString(result, html2text.Options{PrettyTables: true})
+	if len(m.MailMessage.Attachments) > 0 {
+		for _, x := range m.MailMessage.Attachments {
+			message.AddAttachment(x)
+		}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	// Send the message with a 10 second timeout
+	_, _, err = mg.Send(ctx, message)
+	service.ErrorChan <- err
+}
+
+func (w worker) sendViaSMTP(m MailProcessingJob) {
+	plainText, formattedMessage, err := w.buildMessage(m)
 	if err != nil {
-		plainText = ""
-	}
-
-	var formattedMessage string
-
-	formattedMessage, err = inliner.Inline(result)
-	if err != nil {
-		log.Println(err)
 		service.ErrorChan <- err
 		return
 	}
@@ -216,4 +219,63 @@ func (w worker) processJob(m MailProcessingJob) {
 		log.Println(err)
 	}
 	service.ErrorChan <- err
+}
+
+func (w worker) buildMessage(m MailProcessingJob) (string, string, error) {
+	var templateToParse string
+	if m.MailMessage.Template == "" {
+		templateToParse = bootstrapTemplate
+	} else {
+		templateToParse = m.MailMessage.Template
+	}
+
+	t, err := template.New("msg").Parse(templateToParse)
+	if err != nil {
+		log.Println(err)
+		return "", "", err
+	}
+
+	data := struct {
+		Content       template.HTML
+		From          string
+		FromName      string
+		PreferenceMap map[string]string
+		ServerUrl     string
+		IntMap        map[string]int
+		StringMap     map[string]string
+		FloatMap      map[string]float32
+		RowSets       map[string]interface{}
+	}{
+		Content:   m.MailMessage.Content,
+		FromName:  m.MailMessage.FromName,
+		From:      m.MailMessage.FromAddress,
+		ServerUrl: m.MailMessage.ServerURL,
+		IntMap:    m.MailMessage.IntMap,
+		StringMap: m.MailMessage.StringMap,
+		FloatMap:  m.MailMessage.FloatMap,
+		RowSets:   m.MailMessage.RowSets,
+	}
+
+	var tpl bytes.Buffer
+	if err := t.Execute(&tpl, data); err != nil {
+		log.Println(err)
+		return "", "", err
+	}
+
+	result := tpl.String()
+
+	plainText, err := html2text.FromString(result, html2text.Options{PrettyTables: true})
+	if err != nil {
+		plainText = ""
+	}
+
+	var formattedMessage string
+
+	formattedMessage, err = inliner.Inline(result)
+	if err != nil {
+		log.Println(err)
+		service.ErrorChan <- err
+		return "", "", err
+	}
+	return plainText, formattedMessage, nil
 }
