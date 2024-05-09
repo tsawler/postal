@@ -61,6 +61,8 @@ type MailDispatcher struct {
 	ErrorChan  chan error                  // The channel we send errors (or nil) to.
 }
 
+// Send takes a msg in postal.Maildata format, wraps it in a postal.MailProcessingJob
+// and send it to the job queue for delivery.
 func (md *MailDispatcher) Send(msg MailData) {
 	job := MailProcessingJob{
 		MailMessage: msg,
@@ -68,7 +70,7 @@ func (md *MailDispatcher) Send(msg MailData) {
 	md.JobQueue <- job
 }
 
-// Run runs the workers.
+// Run runs the workers in our worker pool.
 func (md *MailDispatcher) Run() {
 	for i := 0; i < md.maxWorkers; i++ {
 		worker := newWorker(i+1, md.WorkerPool)
@@ -78,7 +80,7 @@ func (md *MailDispatcher) Run() {
 	go md.dispatch()
 }
 
-// dispatch dispatches a worker.
+// dispatch dispatches a MailProcessingJob job to a worker.
 func (md *MailDispatcher) dispatch() {
 	for {
 		// Wait for a job to come in.
@@ -91,7 +93,9 @@ func (md *MailDispatcher) dispatch() {
 	}
 }
 
-// processJob processes the main queue job.
+// processJob processes the main queue job by trying to deliver
+// an email message. The resulting error, which will be nil if delivery
+// is successful, is sent to the error chan.
 func (w worker) processJob(m MailProcessingJob) {
 
 	t, err := template.New("msg").Parse(bootstrapTemplate)
