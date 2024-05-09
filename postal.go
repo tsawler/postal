@@ -47,12 +47,20 @@ func New(s Service) (*MailDispatcher, error) {
 		service.MaxWorkers = 2
 	}
 
-	if service.SMTPServer == "" {
+	if service.SMTPServer == "" && service.Method == SMTP {
 		return nil, errors.New("invalid smtp server")
 	}
 
-	if service.SMTPPort == 0 {
+	if service.SMTPPort == 0 && service.Method == SMTP {
 		return nil, errors.New("invalid smtp port")
+	}
+
+	if service.APIKey == "" && service.Method == MailGun {
+		return nil, errors.New("api key required")
+	}
+
+	if service.Domain == "" && service.Method == MailGun {
+		return nil, errors.New("domain required")
 	}
 
 	if service.ErrorChan == nil {
