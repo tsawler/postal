@@ -18,5 +18,6 @@ func New(s Service) *MailDispatcher {
 		WorkerPool: make(chan chan MailProcessingJob),
 		maxWorkers: s.MaxWorkers,
 		JobQueue:   make(chan MailProcessingJob),
+		ErrorChan:  service.ErrorChan,
 	}
 }

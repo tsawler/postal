@@ -58,6 +58,7 @@ type MailDispatcher struct {
 	WorkerPool chan chan MailProcessingJob // Our worker pool channel.
 	maxWorkers int                         // The maximum number of workers in our pool.
 	JobQueue   chan MailProcessingJob      // The channel we send work to.
+	ErrorChan  chan error                  // The channel we send errors (or nil) to.
 }
 
 func (md *MailDispatcher) Send(msg MailData) {
