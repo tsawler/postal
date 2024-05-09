@@ -80,7 +80,7 @@ func (md *MailDispatcher) Run() {
 	go md.dispatch()
 }
 
-// dispatch dispatches a MailProcessingJob job to a worker.
+// dispatch waits for a MailProcessingJob job to come in over the job queue to send to a worker.
 func (md *MailDispatcher) dispatch() {
 	for {
 		// Wait for a job to come in.
@@ -93,9 +93,8 @@ func (md *MailDispatcher) dispatch() {
 	}
 }
 
-// processJob processes the main queue job by trying to deliver
-// an email message. The resulting error, which will be nil if delivery
-// is successful, is sent to the error chan.
+// processJob processes the main queue job by trying to deliver an email message. The resulting error, which will be
+// nil if delivery is successful, is sent to the error chan.
 func (w worker) processJob(m MailProcessingJob) {
 	var templateToParse string
 	if m.MailMessage.Template == "" {
@@ -202,7 +201,7 @@ func (w worker) processJob(m MailProcessingJob) {
 	}
 
 	// To add image to template, use this syntax:
-	// <img alt="alt text" src="cid:filename.png">
+	//     <img alt="alt text" src="cid:filename.png">
 	if len(m.MailMessage.InlineImages) > 0 {
 		for _, x := range m.MailMessage.InlineImages {
 			email.AddInline(x)
