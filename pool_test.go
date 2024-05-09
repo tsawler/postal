@@ -65,4 +65,11 @@ func Test_MailDispatcherSend(t *testing.T) {
 	if err != nil {
 		t.Error("unexpected error when sending message")
 	}
+
+	msg.Template = "{{end}}"
+	dispatcher.Send(msg)
+	err = <-service.ErrorChan
+	if err == nil {
+		t.Error("no error with invalid template")
+	}
 }

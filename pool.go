@@ -100,6 +100,8 @@ func (w worker) processJob(m MailProcessingJob) {
 	var templateToParse string
 	if m.MailMessage.Template == "" {
 		templateToParse = bootstrapTemplate
+	} else {
+		templateToParse = m.MailMessage.Template
 	}
 
 	t, err := template.New("msg").Parse(templateToParse)
