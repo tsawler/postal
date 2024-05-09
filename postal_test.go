@@ -38,4 +38,5 @@ func TestNew(t *testing.T) {
 	if err == nil {
 		t.Error("error expected when error chan unspecified")
 	}
+
 }
