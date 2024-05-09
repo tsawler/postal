@@ -97,8 +97,12 @@ func (md *MailDispatcher) dispatch() {
 // an email message. The resulting error, which will be nil if delivery
 // is successful, is sent to the error chan.
 func (w worker) processJob(m MailProcessingJob) {
+	var templateToParse string
+	if m.MailMessage.Template == "" {
+		templateToParse = bootstrapTemplate
+	}
 
-	t, err := template.New("msg").Parse(bootstrapTemplate)
+	t, err := template.New("msg").Parse(templateToParse)
 	if err != nil {
 		log.Println(err)
 		service.ErrorChan <- err
