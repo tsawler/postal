@@ -61,7 +61,7 @@ type MailDispatcher struct {
 	ErrorChan  chan error                  // The channel we send errors (or nil) to.
 }
 
-// Send takes a msg in postal.Maildata format, wraps it in a postal.MailProcessingJob
+// Send takes a msg in postal.MailData format, wraps it in a postal.MailProcessingJob
 // and send it to the job queue for delivery.
 func (md *MailDispatcher) Send(msg MailData) {
 	job := MailProcessingJob{
