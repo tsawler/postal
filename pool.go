@@ -108,7 +108,7 @@ func (w worker) processJob(m MailProcessingJob) {
 
 func (w worker) sendViaMailGun(m MailProcessingJob) {
 
-	_, formattedMessage, err := w.buildMessage(m)
+	plainTextMessage, formattedMessage, err := w.buildMessage(m)
 	if err != nil {
 		service.ErrorChan <- err
 		return
@@ -119,7 +119,8 @@ func (w worker) sendViaMailGun(m MailProcessingJob) {
 		mg.SetAPIBase("https://api.eu.mailgun.net/v3")
 	}
 
-	message := mg.NewMessage(m.MailMessage.FromAddress, m.MailMessage.Subject, formattedMessage, m.MailMessage.ToAddress)
+	message := mg.NewMessage(m.MailMessage.FromAddress, m.MailMessage.Subject, plainTextMessage, m.MailMessage.ToAddress)
+	message.SetHtml(formattedMessage)
 
 	if len(m.MailMessage.AdditionalTo) > 0 {
 		for _, x := range m.MailMessage.AdditionalTo {
