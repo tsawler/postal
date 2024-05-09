@@ -6,7 +6,7 @@ func TestNew(t *testing.T) {
 	s := Service{
 		ServerURL:    "http://localhost",
 		SMTPServer:   "localhost",
-		SMTPPort:     1025,
+		SMTPPort:     1026,
 		SMTPUser:     "",
 		SMTPPassword: "",
 		ErrorChan:    make(chan error),
@@ -32,7 +32,7 @@ func TestNew(t *testing.T) {
 		t.Error("error expected when SMTP port unspecified")
 	}
 
-	s.SMTPPort = 1025
+	s.SMTPPort = 1026
 	s.ErrorChan = nil
 	_, err = New(s)
 	if err == nil {

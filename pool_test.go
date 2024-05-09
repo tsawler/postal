@@ -6,7 +6,7 @@ func Test_Run(t *testing.T) {
 	s := Service{
 		ServerURL:    "http://localhost",
 		SMTPServer:   "localhost",
-		SMTPPort:     1025,
+		SMTPPort:     1026,
 		SMTPUser:     "",
 		SMTPPassword: "",
 		ErrorChan:    make(chan error),
