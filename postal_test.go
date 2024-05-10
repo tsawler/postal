@@ -40,4 +40,19 @@ func TestNew(t *testing.T) {
 		t.Error("error expected when error chan unspecified")
 	}
 
+	s.ErrorChan = make(chan error)
+	s.Method = MailGun
+	s.Domain = ""
+	_, err = New(s)
+	if err == nil {
+		t.Error("error expected when method is mailgun and domain unspecified")
+	}
+
+	s.Method = MailGun
+	s.Domain = "localhost"
+	s.APIKey = ""
+	_, err = New(s)
+	if err == nil {
+		t.Error("error expected when method is mailgun and api key unspecified")
+	}
 }

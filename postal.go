@@ -74,10 +74,6 @@ func New(s Service) (*MailDispatcher, error) {
 		service.Method = SMTP
 	}
 
-	if service.Method == MailGun && service.Domain == "" {
-		return nil, errors.New("domain required when using mailgun")
-	}
-
 	if service.MaxMessages == 0 {
 		service.MaxMessages = 100
 	}
@@ -98,8 +94,8 @@ func New(s Service) (*MailDispatcher, error) {
 		return nil, errors.New("api key required")
 	}
 
-	if service.Domain == "" && service.Method == MailGun {
-		return nil, errors.New("domain required")
+	if service.Method == MailGun && service.Domain == "" {
+		return nil, errors.New("domain required when using mailgun")
 	}
 
 	if service.ErrorChan == nil {
