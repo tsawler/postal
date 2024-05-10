@@ -27,14 +27,16 @@ func TestMain(m *testing.M) {
 	}
 
 	testMsg = MailData{
-		ToName:      "Me",
-		ToAddress:   "me@here.com",
-		FromName:    "Jack",
-		FromAddress: "jack@there.com",
-		Subject:     "Test subject",
-		Content:     "Hello, world!",
-		CC:          []string{"you@here.com", "him@here.com"},
-		Attachments: []string{"./testdata/img.jpg"},
+		ToName:       "Me",
+		ToAddress:    "me@here.com",
+		AdditionalTo: []string{"sally@here.com", "jill@here.com"},
+		InlineImages: []string{"./testdata/img.jpg"},
+		FromName:     "Jack",
+		FromAddress:  "jack@there.com",
+		Subject:      "Test subject",
+		Content:      "Hello, world!",
+		CC:           []string{"you@here.com", "him@here.com"},
+		Attachments:  []string{"./testdata/img.jpg"},
 	}
 
 	smtpResource, smtpPool := mailHogUp()

@@ -40,24 +40,20 @@ func Test_MailDispatcherSend(t *testing.T) {
 
 func Test_sendViaMailGun(t *testing.T) {
 	testService.Method = MailGun
+	testService.SendingFromEU = true
 
 	dispatcher, err := New(testService)
 	if err != nil {
 		t.Error(err)
 	}
 
-	t.Log("Got dispatcher")
-
 	dispatcher.Run()
-
-	t.Log("Ran dispatcher")
 	dispatcher.Send(testMsg)
-
-	t.Log("Sent msg")
 
 	err = <-service.ErrorChan
 	if err == nil {
 		t.Error("expected error when sending message but did not get one")
 	}
 	testService.Method = SMTP
+	testService.SendingFromEU = false
 }
