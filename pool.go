@@ -238,6 +238,7 @@ func (w worker) sendViaSMTP(m MailProcessingJob) {
 
 func (w worker) buildMessage(m MailProcessingJob) (string, string, error) {
 	var templateToParse string
+	log.Println("building template to parse")
 	if m.MailMessage.Template == "" {
 		templateToParse = fmt.Sprintf("%s/%s", service.TemplateDir, defaultTemplate)
 		m.MailMessage.Template = defaultTemplate
@@ -245,8 +246,12 @@ func (w worker) buildMessage(m MailProcessingJob) (string, string, error) {
 		templateToParse = m.MailMessage.Template
 	}
 
+	log.Println("template to parse is", templateToParse)
+
 	// check to see if the template exists in the cache
 	var tmpl *template.Template
+
+	log.Println("Checking cache")
 
 	// Lock the template map.
 	mapLock.Lock()
@@ -258,6 +263,7 @@ func (w worker) buildMessage(m MailProcessingJob) (string, string, error) {
 		// Not in cache, so create and add to cache.
 		t, err := template.New(m.MailMessage.Template).ParseFiles(templateToParse)
 		if err != nil {
+			mapLock.Unlock()
 			return "", "", err
 		}
 		tmpl = t
@@ -265,6 +271,8 @@ func (w worker) buildMessage(m MailProcessingJob) (string, string, error) {
 	}
 	// Unlock the map.
 	mapLock.Unlock()
+
+	log.Println("finished cache check")
 
 	data := struct {
 		Content   template.HTML

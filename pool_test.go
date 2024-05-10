@@ -3,75 +3,61 @@ package postal
 import "testing"
 
 func Test_Run(t *testing.T) {
-	s := Service{
-		ServerURL:    "http://localhost",
-		SMTPServer:   "localhost",
-		SMTPPort:     1026,
-		SMTPUser:     "",
-		SMTPPassword: "",
-		ErrorChan:    make(chan error),
-		MaxWorkers:   2,
-		MaxMessages:  10,
-		TemplateDir:  "./testdata/templates",
+	dispatcher, err := New(testService)
+	if err != nil {
+		t.Error("Error getting dispatcher", err)
 	}
-	dispatcher, _ := New(s)
 
 	dispatcher.Run()
 
-	msg := MailData{
-		ToName:      "Me",
-		ToAddress:   "me@here.com",
-		FromName:    "Jack",
-		FromAddress: "jack@there.com",
-		Subject:     "Test subject",
-		Content:     "Hello, world!",
-		CC:          []string{"you@here.com", "him@here.com"},
-	}
-
-	dispatcher.Send(msg)
-	err := <-service.ErrorChan
+	dispatcher.Send(testMsg)
+	err = <-service.ErrorChan
 	if err != nil {
-		t.Error("unexpected error when sending message")
+		t.Error("unexpected error when sending message", err)
 	}
 }
 
 func Test_MailDispatcherSend(t *testing.T) {
-	msg := MailData{
-		ToName:      "Me",
-		ToAddress:   "me@here.com",
-		FromName:    "Jack",
-		FromAddress: "jack@there.com",
-		Subject:     "Test subject",
-		Content:     "Hello, world!",
-		CC:          []string{"you@here.com", "him@here.com"},
-		Attachments: []string{"./testdata/img.jpg"},
-	}
-
-	s := Service{
-		ServerURL:    "http://localhost",
-		SMTPServer:   "localhost",
-		SMTPPort:     1026,
-		SMTPUser:     "",
-		SMTPPassword: "",
-		ErrorChan:    make(chan error),
-		MaxWorkers:   2,
-		MaxMessages:  10,
-		TemplateDir:  "./testdata/templates",
-	}
-
-	dispatcher, _ := New(s)
+	dispatcher, _ := New(testService)
 
 	dispatcher.Run()
-	dispatcher.Send(msg)
+	dispatcher.Send(testMsg)
 	err := <-service.ErrorChan
 	if err != nil {
-		t.Error("unexpected error when sending message")
+		t.Error("unexpected error when sending message", err)
 	}
 
-	msg.Template = "{{end}}"
-	dispatcher.Send(msg)
+	oldTemplate := testMsg.Template
+	testMsg.Template = "{{end}}"
+	dispatcher.Send(testMsg)
+
 	err = <-service.ErrorChan
 	if err == nil {
 		t.Error("no error with invalid template")
 	}
+	testMsg.Template = oldTemplate
+}
+
+func Test_sendViaMailGun(t *testing.T) {
+	testService.Method = MailGun
+
+	dispatcher, err := New(testService)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log("Got dispatcher")
+
+	dispatcher.Run()
+
+	t.Log("Ran dispatcher")
+	dispatcher.Send(testMsg)
+
+	t.Log("Sent msg")
+
+	err = <-service.ErrorChan
+	if err == nil {
+		t.Error("expected error when sending message but did not get one")
+	}
+	testService.Method = SMTP
 }
