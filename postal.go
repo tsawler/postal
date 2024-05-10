@@ -1,6 +1,13 @@
 package postal
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+	"github.com/tsawler/toolbox"
+	"io"
+	"net/http"
+	"os"
+)
 
 const (
 	SMTP    = 1
@@ -21,6 +28,32 @@ type Service struct {
 	Domain        string     // The domain used to send mail.
 	APIKey        string     // The API key for mailgun.
 	SendingFromEU bool       // If using mailgun and sending from EU, set to true.
+	TemplateDir   string     // Where templates are stored.
+}
+
+func checkTemplateDir() error {
+	// Get default templates from github.
+	var t toolbox.Tools
+	_ = t.CreateDirIfNotExist(service.TemplateDir)
+
+	_, err := os.Stat(fmt.Sprintf("%s/default.gohtml", service.TemplateDir))
+	if os.IsNotExist(err) {
+		resp, err := http.Get("https://raw.githubusercontent.com/tsawler/postal-templates/main/action.html")
+		if err != nil {
+			return err
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+
+		if err := os.WriteFile(fmt.Sprintf("%s/default.gohtml", service.TemplateDir), body, 0666); err != nil {
+			return err
+		}
+
+	}
+	return nil
 }
 
 var service Service
@@ -66,6 +99,12 @@ func New(s Service) (*MailDispatcher, error) {
 	if service.ErrorChan == nil {
 		return nil, errors.New("ErrorChan must be specified")
 	}
+
+	if service.TemplateDir == "" {
+		service.TemplateDir = "./templates"
+	}
+
+	checkTemplateDir()
 
 	return &MailDispatcher{
 		workerPool: make(chan chan MailProcessingJob),
