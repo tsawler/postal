@@ -20,6 +20,8 @@ func TestMain(m *testing.M) {
 		log.Fatalf("could not purge smtp resource: %s", err)
 	}
 
+	_ = os.RemoveAll("./testdata/templates")
+
 	os.Exit(code)
 }
 

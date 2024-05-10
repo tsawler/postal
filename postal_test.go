@@ -12,6 +12,7 @@ func TestNew(t *testing.T) {
 		ErrorChan:    make(chan error),
 		MaxWorkers:   0,
 		MaxMessages:  0,
+		TemplateDir:  "./testdata/templates",
 	}
 
 	_, err := New(s)

@@ -12,6 +12,7 @@ func Test_Run(t *testing.T) {
 		ErrorChan:    make(chan error),
 		MaxWorkers:   2,
 		MaxMessages:  10,
+		TemplateDir:  "./testdata/templates",
 	}
 	dispatcher, _ := New(s)
 
@@ -55,6 +56,7 @@ func Test_MailDispatcherSend(t *testing.T) {
 		ErrorChan:    make(chan error),
 		MaxWorkers:   2,
 		MaxMessages:  10,
+		TemplateDir:  "./testdata/templates",
 	}
 
 	dispatcher, _ := New(s)
