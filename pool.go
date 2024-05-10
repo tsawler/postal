@@ -3,6 +3,7 @@ package postal
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"github.com/aymerick/douceur/inliner"
 	"github.com/mailgun/mailgun-go/v4"
 	mail "github.com/xhit/go-simple-mail/v2"
@@ -11,6 +12,8 @@ import (
 	"log"
 	"time"
 )
+
+const defaultTemplate = "default.gohtml"
 
 // MailProcessingJob is the unit of work to be performed. We wrap this type
 // around a Video, which has all the information we need about the input source
@@ -239,40 +242,45 @@ func (w worker) sendViaSMTP(m MailProcessingJob) {
 func (w worker) buildMessage(m MailProcessingJob) (string, string, error) {
 	var templateToParse string
 	if m.MailMessage.Template == "" {
-		templateToParse = bootstrapTemplate
+		log.Println(fmt.Sprintf("%s/%s", service.TemplateDir, defaultTemplate))
+		templateToParse = fmt.Sprintf("%s/%s", service.TemplateDir, defaultTemplate)
+		m.MailMessage.Template = defaultTemplate
 	} else {
 		templateToParse = m.MailMessage.Template
 	}
 
-	t, err := template.New("msg").Parse(templateToParse)
-	if err != nil {
-		log.Println(err)
-		return "", "", err
+	// check to see if the template exists in the cache
+	var tmpl *template.Template
+
+	val, ok := service.templateMap[m.MailMessage.Template]
+	if ok {
+		tmpl = val
+	} else {
+		t, err := template.New(m.MailMessage.Template).ParseFiles(templateToParse)
+		if err != nil {
+			log.Println(err)
+			return "", "", err
+		}
+		tmpl = t
+		service.templateMap[m.MailMessage.Template] = tmpl
 	}
 
 	data := struct {
-		Content       template.HTML
-		From          string
-		FromName      string
-		PreferenceMap map[string]string
-		ServerUrl     string
-		IntMap        map[string]int
-		StringMap     map[string]string
-		FloatMap      map[string]float32
-		RowSets       map[string]interface{}
+		Content   template.HTML
+		From      string
+		FromName  string
+		ServerUrl string
+		Data      map[string]interface{}
 	}{
 		Content:   m.MailMessage.Content,
 		FromName:  m.MailMessage.FromName,
 		From:      m.MailMessage.FromAddress,
 		ServerUrl: m.MailMessage.ServerURL,
-		IntMap:    m.MailMessage.IntMap,
-		StringMap: m.MailMessage.StringMap,
-		FloatMap:  m.MailMessage.FloatMap,
-		RowSets:   m.MailMessage.RowSets,
+		Data:      m.MailMessage.Data,
 	}
 
 	var tpl bytes.Buffer
-	if err := t.Execute(&tpl, data); err != nil {
+	if err := tmpl.Execute(&tpl, data); err != nil {
 		log.Println(err)
 		return "", "", err
 	}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/tsawler/toolbox"
+	"html/template"
 	"io"
 	"net/http"
 	"os"
@@ -16,19 +17,20 @@ const (
 
 // Service is the type used to create a MailDispatcher.
 type Service struct {
-	Method        int        // How to send the message: postal.SMTP or postal.MailGun.
-	ServerURL     string     // The URL of the server mail is sent from.
-	SMTPServer    string     // The SMTP server.
-	SMTPPort      int        // The SMTP server's port.
-	SMTPUser      string     // The username for the SMTP server.
-	SMTPPassword  string     // The password for the SMTP server.
-	ErrorChan     chan error // A channel to send errors (or nil) to.
-	MaxWorkers    int        // Maximum number of workers in the pool.
-	MaxMessages   int        // How big the buffer should be for the JobQueue.
-	Domain        string     // The domain used to send mail.
-	APIKey        string     // The API key for mailgun.
-	SendingFromEU bool       // If using mailgun and sending from EU, set to true.
-	TemplateDir   string     // Where templates are stored.
+	Method        int                           // How to send the message: postal.SMTP or postal.MailGun.
+	ServerURL     string                        // The URL of the server mail is sent from.
+	SMTPServer    string                        // The SMTP server.
+	SMTPPort      int                           // The SMTP server's port.
+	SMTPUser      string                        // The username for the SMTP server.
+	SMTPPassword  string                        // The password for the SMTP server.
+	ErrorChan     chan error                    // A channel to send errors (or nil) to.
+	MaxWorkers    int                           // Maximum number of workers in the pool.
+	MaxMessages   int                           // How big the buffer should be for the JobQueue.
+	Domain        string                        // The domain used to send mail.
+	APIKey        string                        // The API key for mailgun.
+	SendingFromEU bool                          // If using mailgun and sending from EU, set to true.
+	TemplateDir   string                        // Where templates are stored.
+	templateMap   map[string]*template.Template // The map of preprocessed html templates.
 }
 
 func checkTemplateDir() error {
@@ -104,7 +106,14 @@ func New(s Service) (*MailDispatcher, error) {
 		service.TemplateDir = "./templates"
 	}
 
-	checkTemplateDir()
+	// Get the default template if it does not exist.
+	err := checkTemplateDir()
+	if err != nil {
+		return nil, err
+	}
+
+	// Set up the template map for caching templates.
+	service.templateMap = make(map[string]*template.Template)
 
 	return &MailDispatcher{
 		workerPool: make(chan chan MailProcessingJob),
