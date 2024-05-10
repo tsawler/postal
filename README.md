@@ -39,10 +39,14 @@ func main() {
 		Domain:        "yourdomain.com",   // Only used for mailgun.
 		TemplateDir:   "./templates",      // The directory where mail templates live.
 	}
+	
+	// Get a dispatcher by calling postal.New(service).
 	dispatcher, _ := postal.New(service)
 
+	// Run the worker pool.
 	dispatcher.Run()
 
+	// Create a mail message.
 	msg := postal.MailData{
 		ToName:      "Me",
 		ToAddress:   "me@here.com",
@@ -54,9 +58,11 @@ func main() {
 		//Template:    "my-template.gohtml", // You can specify your own template, or leave this out and use the default.
 	}
 
+	// Send the message by calling dispatcher.Send.
 	fmt.Println("Sending mail")
 	dispatcher.Send(msg)
 
+	// Wait for something back from ErrorChan.
 	fmt.Println("Waiting for response")
 	err := <-service.ErrorChan
 	fmt.Println("Error", err)
