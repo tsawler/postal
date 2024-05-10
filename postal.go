@@ -8,12 +8,16 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sync"
 )
 
 const (
-	SMTP    = 1
-	MailGun = 2
+	SMTP            = 1
+	MailGun         = 2
+	defaultTemplate = "default.gohtml"
 )
+
+var mapLock sync.Mutex
 
 // Service is the type used to create a MailDispatcher.
 type Service struct {

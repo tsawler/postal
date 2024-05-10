@@ -13,8 +13,6 @@ import (
 	"time"
 )
 
-const defaultTemplate = "default.gohtml"
-
 // MailProcessingJob is the unit of work to be performed. We wrap this type
 // around a Video, which has all the information we need about the input source
 // and what we want the output to look like.
@@ -189,7 +187,6 @@ func (w worker) sendViaSMTP(m MailProcessingJob) {
 
 	smtpClient, err := server.Connect()
 	if err != nil {
-		log.Println(err)
 		service.ErrorChan <- err
 		return
 	}
@@ -242,7 +239,6 @@ func (w worker) sendViaSMTP(m MailProcessingJob) {
 func (w worker) buildMessage(m MailProcessingJob) (string, string, error) {
 	var templateToParse string
 	if m.MailMessage.Template == "" {
-		log.Println(fmt.Sprintf("%s/%s", service.TemplateDir, defaultTemplate))
 		templateToParse = fmt.Sprintf("%s/%s", service.TemplateDir, defaultTemplate)
 		m.MailMessage.Template = defaultTemplate
 	} else {
@@ -252,25 +248,30 @@ func (w worker) buildMessage(m MailProcessingJob) (string, string, error) {
 	// check to see if the template exists in the cache
 	var tmpl *template.Template
 
+	// Lock the template map.
+	mapLock.Lock()
 	val, ok := service.templateMap[m.MailMessage.Template]
 	if ok {
+		// In cache, so use that.
 		tmpl = val
 	} else {
+		// Not in cache, so create and add to cache.
 		t, err := template.New(m.MailMessage.Template).ParseFiles(templateToParse)
 		if err != nil {
-			log.Println(err)
 			return "", "", err
 		}
 		tmpl = t
 		service.templateMap[m.MailMessage.Template] = tmpl
 	}
+	// Unlock the map.
+	mapLock.Unlock()
 
 	data := struct {
 		Content   template.HTML
 		From      string
 		FromName  string
 		ServerUrl string
-		Data      map[string]interface{}
+		Data      map[string]any
 	}{
 		Content:   m.MailMessage.Content,
 		FromName:  m.MailMessage.FromName,
@@ -279,26 +280,27 @@ func (w worker) buildMessage(m MailProcessingJob) (string, string, error) {
 		Data:      m.MailMessage.Data,
 	}
 
+	// Execute the template with data.
 	var tpl bytes.Buffer
 	if err := tmpl.Execute(&tpl, data); err != nil {
-		log.Println(err)
 		return "", "", err
 	}
 
+	// Get the rendered template as a string.
 	result := tpl.String()
 
+	// Create plaintext version of message.
 	plainText, err := html2text.FromString(result, html2text.Options{PrettyTables: true})
 	if err != nil {
 		plainText = ""
 	}
 
-	var formattedMessage string
-
-	formattedMessage, err = inliner.Inline(result)
+	// Create html version of message.
+	formattedMessage, err := inliner.Inline(result)
 	if err != nil {
-		log.Println(err)
 		service.ErrorChan <- err
 		return "", "", err
 	}
+
 	return plainText, formattedMessage, nil
 }
