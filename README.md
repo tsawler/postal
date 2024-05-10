@@ -28,7 +28,7 @@ func main() {
 	service := postal.Service{
 		ServerURL:     "http://localhost", // The URL of the server (for backlinks in mail).
 		SMTPServer:    "localhost",        // The name of the SMTP server you are sending through.
-		SMTPPort:      1025,               // The port the SMTP server lives on.
+		SMTPPort:      1025,               // The port the SMTP server listens on.
 		SMTPUser:      "",                 // SMTP username.
 		SMTPPassword:  "",                 // SMTP password.
 		ErrorChan:     make(chan error),   // A channel to receive errors (or nil for success).
