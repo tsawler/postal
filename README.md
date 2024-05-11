@@ -25,6 +25,7 @@ import (
 )
 
 func main() {
+	// Define a postal.Service variable with values appropriate for your environment.
 	service := postal.Service{
 		Method:         postal.SMTP,       // Method to send. Options oare postal.SMTP or postal.MailGun.
 		ServerURL:     "http://localhost", // The URL of the server (for backlinks in mail).
