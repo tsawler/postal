@@ -151,6 +151,14 @@ func (w worker) sendViaMailGun(m MailProcessingJob) {
 		}
 	}
 
+	// To add image to template, use this syntax:
+	//     <img alt="alt text" src="cid:filename.png">
+	if len(m.MailMessage.InlineImages) > 0 {
+		for _, x := range m.MailMessage.InlineImages {
+			message.AddInline(x)
+		}
+	}
+
 	// Set a 10-second context.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
