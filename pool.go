@@ -108,6 +108,7 @@ func (w worker) processJob(m MailProcessingJob) {
 	}
 }
 
+// sendViaMailGun attempts to send an email using MailGun's api.
 func (w worker) sendViaMailGun(m MailProcessingJob) {
 	// Get the message body in both formats.
 	plainTextMessage, formattedMessage, err := w.buildMessage(m)
@@ -144,6 +145,13 @@ func (w worker) sendViaMailGun(m MailProcessingJob) {
 		}
 	}
 
+	// Add bcc recipients.
+	if len(m.MailMessage.CC) > 0 {
+		for _, x := range m.MailMessage.CC {
+			message.AddBCC(x)
+		}
+	}
+
 	// Add attachments.
 	if len(m.MailMessage.Attachments) > 0 {
 		for _, x := range m.MailMessage.Attachments {
@@ -168,6 +176,7 @@ func (w worker) sendViaMailGun(m MailProcessingJob) {
 	service.ErrorChan <- err
 }
 
+// sendViaSMTP attempts to send a message using an SMTP server.
 func (w worker) sendViaSMTP(m MailProcessingJob) {
 	// Get the message body in both formats.
 	plainText, formattedMessage, err := w.buildMessage(m)
@@ -219,6 +228,13 @@ func (w worker) sendViaSMTP(m MailProcessingJob) {
 		}
 	}
 
+	// Add bcc recipients.
+	if len(m.MailMessage.BCC) > 0 {
+		for _, x := range m.MailMessage.CC {
+			email.AddBcc(x)
+		}
+	}
+
 	// Add attachments.
 	if len(m.MailMessage.Attachments) > 0 {
 		for _, x := range m.MailMessage.Attachments {
@@ -244,6 +260,8 @@ func (w worker) sendViaSMTP(m MailProcessingJob) {
 	service.ErrorChan <- err
 }
 
+// buildMessage takes a mail processing job and sends back the message in two formats:
+// plaintext and HTML.
 func (w worker) buildMessage(m MailProcessingJob) (string, string, error) {
 	var templateToParse string
 	if m.MailMessage.Template == "" {
