@@ -8,7 +8,7 @@
 
 Postal is a simple package which allows you to send email messages, either via an SMTP server
 or using [MailGun](https://www.mailgun.com/)'s api. Postal implements a simple worker pool to
-make sending messages both easy and efficient.
+make sending messages both easy and efficient. Postal uses standard [Go templates](https://pkg.go.dev/html/template@go1.22.3) (html/template).
 
 ## Installation
 
