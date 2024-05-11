@@ -43,7 +43,7 @@ type Service struct {
 }
 ~~~
 
-Then, create a `postal.MailDispatche`r by calling `postal.New` with your `postal.Service` as the parameter:
+Then, create a `postal.MailDispatcher` by calling `postal.New` with your `postal.Service` as the parameter:
 
 ~~~go
 dispatcher, _ := postal.Service(myService)
