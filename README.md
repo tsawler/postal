@@ -103,9 +103,6 @@ func main() {
 		ErrorChan:     make(chan error),   // A channel to receive errors (or nil for success).
 		MaxWorkers:    2,                  // Number of workers in our pool.
 		MaxMessages:   10,                 // Buffer size for send channel.
-		APIKey:        "",                 // API key is used for mailgun.
-		SendingFromEU: false,              // If using mailgun, set to true if sending from EU.
-		Domain:        "yourdomain.com",   // Only used for mailgun.
 		TemplateDir:   "./templates",      // The directory where mail templates live.
 	}
 	
