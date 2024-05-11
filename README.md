@@ -20,8 +20,8 @@ go get -u github.com/tsawler/postal
 
 ## Usage
 
-To create a worker pool to send email, first define a Service object with settings appropriate for your environment.
-This is the Service type:
+To create a worker pool to send email, first define a `postal.Service` object with settings appropriate for your environment.
+This is the `postal.Service` type:
 
 ~~~go
 // Service is the type used to create a MailDispatcher.
@@ -43,13 +43,13 @@ type Service struct {
 }
 ~~~
 
-Then, create a MailDispatcher by calling postal.New with your Service as the parameter:
+Then, create a `postal.MailDispatche`r by calling `postal.New` with your `postal.Service` as the parameter:
 
 ~~~go
 dispatcher, _ := postal.Service(myService)
 ~~~
 
-Create a mail message by defining a postal.MailData object. This is the type for MailData:
+Create a mail message by defining a `postal.MailData` object. This is the type for `postal.MailData`:
 
 ~~~go
 // MailData holds all information for a given message.
@@ -71,7 +71,7 @@ type MailData struct {
 }
 ~~~
 
-Finally, to send the message, call the Send() method. Errors will be sent back on the Service.ErrorChan, and nil will
+Finally, to send the message, call the `Send()` method on your dispatcher. Errors will be sent back on the `Service.ErrorChan`, and `nil` will
 be sent back if the mail was queued successfully.
 
 ~~~go
