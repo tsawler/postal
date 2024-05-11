@@ -171,7 +171,7 @@ func main() {
 
 	// Create a mail message, of postal.MailData type.
 	msg := postal.MailData{
-		ToName:      "Me",
+		ToName:        "Me",
 		ToAddress:     "me@here.com",
 		FromName:      "Jack",
 		FromAddress:   "jack@there.com",
