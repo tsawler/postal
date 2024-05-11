@@ -268,7 +268,7 @@ func (w worker) buildMessage(m MailProcessingJob) (string, string, error) {
 		templateToParse = fmt.Sprintf("%s/%s", service.TemplateDir, defaultTemplate)
 		m.MailMessage.Template = defaultTemplate
 	} else {
-		templateToParse = m.MailMessage.Template
+		templateToParse = fmt.Sprintf("%s/%s", service.TemplateDir, m.MailMessage.Template)
 	}
 
 	// check to see if the template exists in the cache
