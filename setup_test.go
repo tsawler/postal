@@ -35,7 +35,8 @@ func TestMain(m *testing.M) {
 		FromAddress:  "jack@there.com",
 		Subject:      "Test subject",
 		Content:      "Hello, world!",
-		CC:           []string{"you@here.com", "him@here.com"},
+		CC:           []string{"blue@here.com", "red@here.com"},
+		BCC:          []string{"green@here.com", "yellow@here.com"},
 		Attachments:  []string{"./testdata/img.jpg"},
 	}
 

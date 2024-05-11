@@ -146,8 +146,8 @@ func (w worker) sendViaMailGun(m MailProcessingJob) {
 	}
 
 	// Add bcc recipients.
-	if len(m.MailMessage.CC) > 0 {
-		for _, x := range m.MailMessage.CC {
+	if len(m.MailMessage.BCC) > 0 {
+		for _, x := range m.MailMessage.BCC {
 			message.AddBCC(x)
 		}
 	}
@@ -230,7 +230,7 @@ func (w worker) sendViaSMTP(m MailProcessingJob) {
 
 	// Add bcc recipients.
 	if len(m.MailMessage.BCC) > 0 {
-		for _, x := range m.MailMessage.CC {
+		for _, x := range m.MailMessage.BCC {
 			email.AddBcc(x)
 		}
 	}
