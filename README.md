@@ -14,6 +14,67 @@ go get -u github.com/tsawler/postal
 
 ## Usage
 
+To create a worker pool to send email, first define a Service object with settings appropriate for your environment.
+This is the Service type:
+
+~~~go
+// Service is the type used to create a MailDispatcher.
+type Service struct {
+    Method        int                           // How to send the message: postal.SMTP or postal.MailGun.
+    ServerURL     string                        // The URL of the server mail is sent from.
+    SMTPServer    string                        // The SMTP server.
+    SMTPPort      int                           // The SMTP server's port.
+    SMTPUser      string                        // The username for the SMTP server.
+    SMTPPassword  string                        // The password for the SMTP server.
+    ErrorChan     chan error                    // A channel to send errors (or nil) to.
+    MaxWorkers    int                           // Maximum number of workers in the pool.
+    MaxMessages   int                           // How big the buffer should be for the JobQueue.
+    Domain        string                        // The domain used to send mail.
+    APIKey        string                        // The API key for mailgun.
+    SendingFromEU bool                          // If using mailgun and sending from EU, set to true.
+    TemplateDir   string                        // Where templates are stored.
+    templateMap   map[string]*template.Template // The map of preprocessed html templates.
+}
+~~~
+
+Then, create a MailDispatcher by calling postal.New with your Service as the parameter:
+
+~~~go
+dispatcher, _ := postal.Service(myService)
+~~~
+
+Create a mail message by defining a postal.MailData object. This is the type for MailData:
+
+~~~go
+// MailData holds all information for a given message.
+type MailData struct {
+	ToName       string         // The name of the recipient.
+	ToAddress    string         // The email address of the recipient.
+	FromName     string         // The name of the sender.
+	FromAddress  string         // THe email address of the sender.
+	AdditionalTo []string       // Additional TO recipients.
+	Subject      string         // The subject of the email message.
+	Content      template.HTML  // The content of the message, as HTML.
+	Template     string         // The template to use. If not specified, will use a simple default template.
+	CC           []string       // A slice of CC recipient emails.
+	BCC          []string       // A slice of BCC recipient emails.
+	Attachments  []string       // A slice of attachments, which must exist on disk (i.e. []string{"./files/myfile.pdf"}).
+	Data         map[string]any // Data which is to be passed to the Go template.
+	InlineImages []string       // A slice of images to be inlined in the email. PNG is preferred.
+	ServerURL    string         // The URL of the server (for backlinks in message).
+}
+~~~
+
+Finally, to send the message, call the Send() method. Errors will be sent back on the Service.ErrorChan, and nil will
+be sent back if the mail was queued successfully.
+
+~~~go
+dispatcher.Send(msg)
+
+// Wait for a response.
+err := <-service.ErrorChan
+~~~
+
 An example of sending via SMTP:
 
 ~~~go
