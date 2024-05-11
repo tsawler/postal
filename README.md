@@ -94,7 +94,7 @@ import (
 func main() {
 	// Define a postal.Service variable with values appropriate for your environment.
 	service := postal.Service{
-		Method:         postal.SMTP,       // Method to send. Options oare postal.SMTP or postal.MailGun.
+		Method:         postal.SMTP,       // Method to send. Options are postal.SMTP or postal.MailGun.
 		ServerURL:     "http://localhost", // The URL of the server (for backlinks in mail).
 		SMTPServer:    "localhost",        // The name of the SMTP server you are sending through.
 		SMTPPort:      1025,               // The port the SMTP server listens on.
@@ -152,7 +152,7 @@ func main() {
 	
 	// Define a postal.Service variable with values appropriate for your environment.
 	service := postal.Service{
-		Method:        postal.MailGun,     // Method to send. Options oare postal.SMTP or postal.MailGun.
+		Method:        postal.MailGun,     // Method to send. Options are postal.SMTP or postal.MailGun.
 		ServerURL:    "http://localhost",  // The URL of your server, in case you want backlinks in your message.
 		ErrorChan:     make(chan error),   // A channel to receive error messages (or nil for successful sends).
 		MaxWorkers:    2,                  // The number of workers you want in the worker pool.
