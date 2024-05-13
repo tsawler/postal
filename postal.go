@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -103,7 +104,9 @@ func New(s Service) (*MailDispatcher, error) {
 	}
 
 	if service.TemplateDir == "" {
-		service.TemplateDir = "./templates"
+		service.TemplateDir = "./templates/mail"
+	} else if strings.HasSuffix(service.TemplateDir, "/") {
+		service.TemplateDir = strings.TrimSuffix(service.TemplateDir, "/")
 	}
 
 	// Get the default template if it does not exist.
