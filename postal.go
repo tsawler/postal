@@ -45,6 +45,7 @@ func checkTemplateDir() error {
 
 	_, err := os.Stat(fmt.Sprintf("%s/default.gohtml", service.TemplateDir))
 	if os.IsNotExist(err) {
+		fmt.Println("Getting default template from remote source...")
 		resp, err := http.Get("https://raw.githubusercontent.com/tsawler/postal-templates/main/action.html")
 		if err != nil {
 			return err
@@ -58,6 +59,7 @@ func checkTemplateDir() error {
 		if err := os.WriteFile(fmt.Sprintf("%s/default.gohtml", service.TemplateDir), body, 0666); err != nil {
 			return err
 		}
+		fmt.Println("Done!")
 
 	}
 	return nil
