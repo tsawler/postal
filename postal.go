@@ -60,8 +60,8 @@ func checkTemplateDir() error {
 			return err
 		}
 		fmt.Println("Done!")
-
 	}
+
 	return nil
 }
 
