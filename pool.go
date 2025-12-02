@@ -8,7 +8,7 @@ import (
 	"github.com/mailgun/mailgun-go/v4"
 	mail "github.com/xhit/go-simple-mail/v2"
 	"html/template"
-	"jaytaylor.com/html2text"
+	"github.com/k3a/html2text"
 	"log"
 	"time"
 )
@@ -317,10 +317,7 @@ func (w worker) buildMessage(m MailProcessingJob) (string, string, error) {
 	result := tpl.String()
 
 	// Create plaintext version of message.
-	plainText, err := html2text.FromString(result, html2text.Options{PrettyTables: true})
-	if err != nil {
-		plainText = ""
-	}
+	plainText := html2text.HTML2Text(result)
 
 	// Create html version of message.
 	formattedMessage, err := inliner.Inline(result)
