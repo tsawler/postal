@@ -13,6 +13,7 @@ type MailData struct {
 	ToAddress    string         // The email address of the recipient.
 	FromName     string         // The name of the sender.
 	FromAddress  string         // The email address of the sender.
+	ReplyTo      string         // The reply-to email address.
 	AdditionalTo []string       // Additional TO recipients.
 	Subject      string         // The subject of the email message.
 	Content      template.HTML  // The content of the message, as HTML.

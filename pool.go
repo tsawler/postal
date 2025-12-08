@@ -127,6 +127,11 @@ func (w worker) sendViaMailGun(m MailProcessingJob) {
 	message := mg.NewMessage(m.MailMessage.FromAddress, m.MailMessage.Subject, plainTextMessage, m.MailMessage.ToAddress)
 	message.SetHtml(formattedMessage)
 
+	// Set reply-to address.
+	if m.MailMessage.ReplyTo != "" {
+		message.SetReplyTo(m.MailMessage.ReplyTo)
+	}
+
 	// Add additional to recipients.
 	if len(m.MailMessage.AdditionalTo) > 0 {
 		for _, x := range m.MailMessage.AdditionalTo {
@@ -213,6 +218,11 @@ func (w worker) sendViaSMTP(m MailProcessingJob) {
 	email.SetFrom(m.MailMessage.FromAddress).
 		AddTo(m.MailMessage.ToAddress).
 		SetSubject(m.MailMessage.Subject)
+
+	// Set reply-to address.
+	if m.MailMessage.ReplyTo != "" {
+		email.SetReplyTo(m.MailMessage.ReplyTo)
+	}
 
 	// Add additional to recipients.
 	if len(m.MailMessage.AdditionalTo) > 0 {
