@@ -124,7 +124,11 @@ func (w worker) sendViaMailGun(m MailProcessingJob) {
 	}
 
 	// Create the message in MailGun format.
-	message := mg.NewMessage(m.MailMessage.FromAddress, m.MailMessage.Subject, plainTextMessage, m.MailMessage.ToAddress)
+	fromAddr := m.MailMessage.FromAddress
+	if m.MailMessage.FromName != "" {
+		fromAddr = fmt.Sprintf("%s <%s>", m.MailMessage.FromName, m.MailMessage.FromAddress)
+	}
+	message := mg.NewMessage(fromAddr, m.MailMessage.Subject, plainTextMessage, m.MailMessage.ToAddress)
 	message.SetHtml(formattedMessage)
 
 	// Set reply-to address.
@@ -214,8 +218,12 @@ func (w worker) sendViaSMTP(m MailProcessingJob) {
 	}
 
 	// Create the mail message.
+	fromAddr := m.MailMessage.FromAddress
+	if m.MailMessage.FromName != "" {
+		fromAddr = fmt.Sprintf("%s <%s>", m.MailMessage.FromName, m.MailMessage.FromAddress)
+	}
 	email := mail.NewMSG()
-	email.SetFrom(m.MailMessage.FromAddress).
+	email.SetFrom(fromAddr).
 		AddTo(m.MailMessage.ToAddress).
 		SetSubject(m.MailMessage.Subject)
 
