@@ -129,7 +129,12 @@ func (w worker) sendViaMailGun(m MailProcessingJob) {
 		fromAddr = fmt.Sprintf("%s <%s>", m.MailMessage.FromName, m.MailMessage.FromAddress)
 	}
 	message := mg.NewMessage(fromAddr, m.MailMessage.Subject, plainTextMessage, m.MailMessage.ToAddress)
-	message.SetHtml(formattedMessage)
+
+	// Set HTML body only for HTML content type (default).
+	contentType := m.MailMessage.ContentType
+	if contentType == "" || contentType == "text/html" {
+		message.SetHtml(formattedMessage)
+	}
 
 	// Set reply-to address.
 	if m.MailMessage.ReplyTo != "" {
@@ -268,8 +273,22 @@ func (w worker) sendViaSMTP(m MailProcessingJob) {
 		}
 	}
 
-	email.SetBody(mail.TextPlain, plainText)
-	email.AddAlternative(mail.TextHTML, formattedMessage)
+	// Set body based on content type.
+	contentType := m.MailMessage.ContentType
+	if contentType == "" {
+		contentType = "text/html"
+	}
+
+	switch contentType {
+	case "text/plain":
+		email.SetBody(mail.TextPlain, plainText)
+	case "text/html":
+		email.SetBody(mail.TextPlain, plainText)
+		email.AddAlternative(mail.TextHTML, formattedMessage)
+	default:
+		// For other content types (e.g., application/xml), send as plain text body.
+		email.SetBody(mail.TextPlain, formattedMessage)
+	}
 
 	err = email.Send(smtpClient)
 	if err != nil {

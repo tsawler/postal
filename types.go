@@ -17,6 +17,7 @@ type MailData struct {
 	AdditionalTo []string       // Additional TO recipients.
 	Subject      string         // The subject of the email message.
 	Content      template.HTML  // The content of the message, as HTML.
+	ContentType  string         // Optional: "text/html" (default), "text/plain", "application/xml", etc.
 	Template     string         // The template to use. If not specified, will use a simple default template.
 	CC           []string       // A slice of CC recipient emails.
 	BCC          []string       // A slice of BCC recipient emails.
