@@ -32,21 +32,24 @@ type Service struct {
     SMTPPort      int                           // The SMTP server's port.
     SMTPUser      string                        // The username for the SMTP server.
     SMTPPassword  string                        // The password for the SMTP server.
-    ErrorChan     chan error                    // A channel to send errors (or nil) to.
-    MaxWorkers    int                           // Maximum number of workers in the pool.
-    MaxMessages   int                           // How big the buffer should be for the JobQueue.
-    Domain        string                        // The domain used to send mail.
-    APIKey        string                        // The API key for mailgun.
-    SendingFromEU bool                          // If using mailgun and sending from EU, set to true.
-    TemplateDir   string                        // Where templates are stored.
-    templateMap   map[string]*template.Template // The map of preprocessed html templates.
+    ErrorChan     chan error // Optional channel for results (an error, or nil on success).
+    MaxWorkers    int        // Maximum number of workers in the pool.
+    MaxMessages   int        // How big the buffer should be for the JobQueue.
+    Domain        string     // The domain used to send mail.
+    APIKey        string     // The API key for mailgun.
+    SendingFromEU bool       // If using mailgun and sending from EU, set to true.
+    TemplateDir   string     // Where templates are stored.
+
+    ConnectTimeout time.Duration // Bounds the SMTP connection. Zero means 10s.
+    SendTimeout    time.Duration // Bounds transmission / the Mailgun call. Zero means 10s.
+    ErrorChanGrace time.Duration // How long a worker waits on an unread ErrorChan. Zero means 5s.
 }
 ~~~
 
 Then, create a `postal.MailDispatcher` by calling `postal.New` with your `postal.Service` as the parameter:
 
 ~~~go
-dispatcher, _ := postal.Service(myService)
+dispatcher, _ := postal.New(myService)
 ~~~
 
 Create a mail message by defining a `postal.MailData` object. This is the type for `postal.MailData`:
@@ -73,15 +76,51 @@ type MailData struct {
 }
 ~~~
 
-Finally, to send the message, call the `Send()` method on your dispatcher. Errors will be sent back on the `Service.ErrorChan`, and `nil` will
-be sent back if the mail was queued successfully.
+Finally, send the message. There are two ways to do this.
+
+**`SendAndWait` (recommended)** delivers one message and returns *that message's* result:
+
+~~~go
+ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+defer cancel()
+
+if err := dispatcher.SendAndWait(ctx, msg); err != nil {
+    log.Println("could not send:", err)
+}
+~~~
+
+Each call carries a private result channel, so concurrent callers never receive
+one another's results, and a caller whose context expires cannot strand the
+worker still delivering its message. Allow the context at least
+`Service.MaxSendDuration()` (`ConnectTimeout + SendTimeout`, 20s by default), or
+slow but successful sends are abandoned and misreported as failures.
+
+**`Send`** is fire and forget. It returns as soon as the message is queued, and
+the result is delivered to `Service.ErrorChan` if one is configured:
 
 ~~~go
 dispatcher.Send(msg)
 
 // Wait for a response.
-err := <-service.ErrorChan
+err := <-dispatcher.ErrorChan
 ~~~
+
+Because `ErrorChan` is shared by every in-flight message, a value read from it
+cannot be attributed to any particular `Send`. Use `SendAndWait` when the caller
+needs to know whether *its* message was delivered.
+
+When you are finished with a dispatcher, call `Close()` to stop the worker pool
+and wait for in-flight deliveries to finish.
+
+### Concurrency and lifetime
+
+* Multiple dispatchers may be created and used concurrently; each keeps its own
+  configuration and template cache.
+* `SendAndWait` is safe to call from any number of goroutines at once.
+* A worker is never blocked indefinitely. If no one is reading `ErrorChan`, the
+  result is dropped after `ErrorChanGrace` rather than parking the worker.
+* `Run` and `Close` are both idempotent. A dispatcher cannot be restarted after
+  `Close`.
 
 An example of sending via SMTP:
 
@@ -132,7 +171,7 @@ func main() {
 
 	// Wait for something back from ErrorChan.
 	fmt.Println("Waiting for response")
-	err := <-service.ErrorChan
+	err := <-dispatcher.ErrorChan
 	fmt.Println("Error", err)
 }
 ~~~
@@ -186,7 +225,7 @@ func main() {
 	
 	// Wait for a response.
 	fmt.Println("Waiting for response")
-	err := <-service.ErrorChan
+	err := <-dispatcher.ErrorChan
 	
 	// If err is nil, then the message was sent.
 	fmt.Println("Error", err)
