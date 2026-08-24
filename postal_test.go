@@ -33,11 +33,12 @@ func TestNew(t *testing.T) {
 		t.Error("error expected when SMTP port unspecified")
 	}
 
+	// ErrorChan is optional: SendAndWait returns results to its caller directly,
+	// so a dispatcher need not have a shared channel at all.
 	s.SMTPPort = 1026
 	s.ErrorChan = nil
-	_, err = New(s)
-	if err == nil {
-		t.Error("error expected when error chan unspecified")
+	if _, err = New(s); err != nil {
+		t.Error("ErrorChan should be optional, got:", err)
 	}
 
 	s.ErrorChan = make(chan error)
