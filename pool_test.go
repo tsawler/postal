@@ -3,6 +3,7 @@ package postal
 import (
 	"context"
 	"errors"
+	"html/template"
 	"sync"
 	"testing"
 	"time"
@@ -410,5 +411,40 @@ func Test_TimeoutOverrides(t *testing.T) {
 	}
 	if got := s.MaxSendDuration(); got != 10*time.Second {
 		t.Errorf("MaxSendDuration = %v, want 10s", got)
+	}
+}
+
+func Test_bodiesPlainTextIsVerbatim(t *testing.T) {
+	dispatcher, err := New(testService)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// An ADF lead: a document whose tags the HTML-to-text pass would strip.
+	doc := "<?xml version=\"1.0\"?>\n<?adf version=\"1.0\"?>\n<adf><prospect><customer><contact><name part=\"first\">Jane</name></contact></customer></prospect></adf>\n"
+
+	msg := testMsg
+	msg.ContentType = "text/plain"
+	msg.Content = template.HTML(doc)
+
+	plain, html, err := dispatcher.bodies(MailProcessingJob{MailMessage: msg})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plain != doc {
+		t.Errorf("text/plain body was altered:\nwant %q\ngot  %q", doc, plain)
+	}
+	if html != "" {
+		t.Errorf("text/plain message should have no HTML body, got %q", html)
+	}
+
+	// The default content type still goes through the template.
+	msg.ContentType = ""
+	plain, html, err = dispatcher.bodies(MailProcessingJob{MailMessage: msg})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plain == doc || html == "" {
+		t.Errorf("html message should be templated: plain=%q html=%q", plain, html)
 	}
 }
