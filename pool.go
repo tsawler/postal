@@ -265,7 +265,7 @@ func (w worker) sendViaMailGun(m MailProcessingJob) error {
 	service := w.md.service
 
 	// Get the message body in both formats.
-	plainTextMessage, formattedMessage, err := w.md.buildMessage(m)
+	plainTextMessage, formattedMessage, err := w.md.bodies(m)
 	if err != nil {
 		return err
 	}
@@ -345,7 +345,7 @@ func (w worker) sendViaSMTP(m MailProcessingJob) error {
 	service := w.md.service
 
 	// Get the message body in both formats.
-	plainText, formattedMessage, err := w.md.buildMessage(m)
+	plainText, formattedMessage, err := w.md.bodies(m)
 	if err != nil {
 		return err
 	}
@@ -446,6 +446,22 @@ func (w worker) sendViaSMTP(m MailProcessingJob) error {
 	}
 
 	return nil
+}
+
+// bodies returns the plain-text and HTML bodies of a message.
+//
+// A text/plain message is sent exactly as given: Content is the whole body,
+// with no template around it and no HTML-to-text conversion, and there is
+// no HTML body. That is what a lead system expecting one ADF document in
+// the body needs — buildMessage would wrap the document in the HTML
+// template and then strip every tag out of it on the way to plain text.
+//
+// Everything else is rendered through the template by buildMessage.
+func (md *MailDispatcher) bodies(m MailProcessingJob) (plainText, html string, err error) {
+	if m.MailMessage.ContentType == "text/plain" {
+		return string(m.MailMessage.Content), "", nil
+	}
+	return md.buildMessage(m)
 }
 
 // buildMessage takes a mail processing job and sends back the message in two
